@@ -88,6 +88,17 @@ function scenario(score) {
   return { up, flat, down };
 }
 
+function calcATRLike(closes, period = 14) {
+  if (!closes || closes.length < period + 1) return null;
+  let sum = 0;
+  for (let i = closes.length - period; i < closes.length; i++) {
+    const prev = closes[i - 1];
+    const cur = closes[i];
+    sum += Math.abs(cur - prev);
+  }
+  return sum / period;
+}
+
 function computeScore(rsi, macd) {
   let score = 0;
   if (rsi != null) {
@@ -113,7 +124,16 @@ function moodFromScore(score) {
 
 function drawSparklineOn(canvasId, closes) {
   const canvas = el(canvasId);
-  if (!canvas || !closes?.length || closes.length < 2) return;
+  if (!canvas) return;
+  if (!closes?.length || closes.length < 2) {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#8fa0d0';
+    ctx.font = '12px system-ui';
+    ctx.fillText('데이터 없음', 12, 20);
+    return;
+  }
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
@@ -238,12 +258,21 @@ async function load() {
   const macd = calcMACD(closes);
   const score = computeScore(rsi, macd);
   const sc = scenario(score);
+  const atr = calcATRLike(closes, 14) || 0;
+
+  let position = '관망';
+  if (score >= 0.6) position = '롱 우세';
+  else if (score <= -0.6) position = '숏 우세';
+
+  const stop = score >= 0 ? (current - atr * 2) : (current + atr * 2);
 
   el('price').textContent = Number(current).toLocaleString();
   el('rsi').textContent = rsi ? rsi.toFixed(2) : '-';
   el('macd').textContent = macd ? `${macd.macd.toFixed(4)} / signal ${macd.signal.toFixed(4)}` : '-';
   el('score').textContent = `${score.toFixed(2)} (${score > 0 ? '상승 우세' : score < 0 ? '하락 우세' : '중립'})`;
   el('scenario').innerHTML = `<li>상승: <b>${sc.up}%</b></li><li>횡보: <b>${sc.flat}%</b></li><li>하락: <b>${sc.down}%</b></li>`;
+  el('positionAdvice').textContent = `${position} (score ${score.toFixed(2)})`;
+  el('stopPrice').textContent = Number(stop).toLocaleString(undefined, { maximumFractionDigits: 4 });
 
   el('mood').textContent = moodFromScore(score);
   el('thermoFill').style.width = `${((score + 3) / 6) * 100}%`;
