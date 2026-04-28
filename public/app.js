@@ -86,6 +86,14 @@ function briefLine(symbol, rsi, macd, score) {
   return lines.join(' ');
 }
 
+async function fetchBinanceFallback(symbol, tf) {
+  const binTf = tf === '1h' ? '1h' : tf;
+  const ticker = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`).then(r => r.json());
+  const klines = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${binTf}&limit=250`).then(r => r.json());
+  const closes = klines.map(k => Number(k[4]));
+  return { closes, current: Number(ticker.price), source: 'Binance fallback' };
+}
+
 async function load() {
   const cfg = window.APP_CONFIG || {};
   if (!cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY || cfg.SUPABASE_URL.includes('__')) {
@@ -102,6 +110,10 @@ async function load() {
 
   el('price').textContent = '로딩...';
 
+  let closes = [];
+  let current = null;
+  let sourceLabel = 'Supabase';
+
   const { data, error } = await sb
     .from('price_candles')
     .select('ts,close')
@@ -110,20 +122,17 @@ async function load() {
     .order('ts', { ascending: false })
     .limit(250);
 
-  if (error) {
-    el('price').textContent = 'DB 에러';
-    el('scenario').innerHTML = `<li>${error.message}</li>`;
-    return;
+  if (!error && data && data.length >= 40) {
+    closes = [...data].reverse().map((r) => Number(r.close));
+    current = closes[closes.length - 1];
+  } else {
+    const fb = await fetchBinanceFallback(symbol, tf);
+    closes = fb.closes;
+    current = fb.current;
+    sourceLabel = fb.source;
   }
 
-  if (!data || data.length < 40) {
-    el('price').textContent = '데이터 부족';
-    el('scenario').innerHTML = '<li>price_candles 데이터(최소 40개) 먼저 적재 필요</li>';
-    return;
-  }
-
-  const closes = [...data].reverse().map((r) => Number(r.close));
-  const current = closes[closes.length - 1];
+  el('dataSource').textContent = `데이터 소스: ${sourceLabel}`;
   const rsi = calcRSI(closes);
   const macd = calcMACD(closes);
   const score = computeScore(rsi, macd);
