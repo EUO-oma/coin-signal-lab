@@ -34,6 +34,26 @@ function saveSettings(s) {
   localStorage.setItem('coinSignalSettings', JSON.stringify(s));
 }
 
+function pushSignalHistory(label) {
+  try {
+    const key = 'coinSignalHistory';
+    const arr = JSON.parse(localStorage.getItem(key) || '[]');
+    arr.unshift({ t: Date.now(), label });
+    const next = arr.slice(0, 20);
+    localStorage.setItem(key, JSON.stringify(next));
+    return next;
+  } catch {
+    return [];
+  }
+}
+
+function renderSignalHistory() {
+  const box = el('signalHistory');
+  if (!box) return;
+  const arr = JSON.parse(localStorage.getItem('coinSignalHistory') || '[]');
+  box.innerHTML = arr.map((v) => `<span class="signal-dot ${v.label}" title="${v.label}"></span>`).join('');
+}
+
 function ema(values, period) {
   const k = 2 / (period + 1);
   let prev = values[0];
@@ -295,6 +315,9 @@ async function load() {
   else if (score <= -0.6) position = '숏 우세';
 
   const stop = score >= 0 ? (current - atr * 2) : (current + atr * 2);
+  const risk = Math.abs(current - stop);
+  const tp1 = score >= 0 ? current + risk : current - risk;
+  const tp2 = score >= 0 ? current + risk * 2 : current - risk * 2;
 
   el('price').textContent = Number(current).toLocaleString();
   el('rsi').textContent = rsi ? rsi.toFixed(2) : '-';
@@ -302,7 +325,15 @@ async function load() {
   el('score').textContent = `${score.toFixed(2)} (${score > 0 ? '상승 우세' : score < 0 ? '하락 우세' : '중립'})`;
   el('scenario').innerHTML = `<li>상승: <b>${sc.up}%</b></li><li>횡보: <b>${sc.flat}%</b></li><li>하락: <b>${sc.down}%</b></li>`;
   el('positionAdvice').textContent = `${position} (score ${score.toFixed(2)})`;
-  el('stopPrice').textContent = Number(stop).toLocaleString(undefined, { maximumFractionDigits: 4 });
+  el('stopPrice').textContent = `SL: ${Number(stop).toLocaleString(undefined, { maximumFractionDigits: 4 })}`;
+  el('takeProfit').textContent = `TP1(1R): ${Number(tp1).toLocaleString(undefined, { maximumFractionDigits: 4 })} / TP2(2R): ${Number(tp2).toLocaleString(undefined, { maximumFractionDigits: 4 })}`;
+
+  const fill = Math.max(0, Math.min(100, ((score + 3) / 6) * 100));
+  el('signalFill').style.width = `${fill}%`;
+
+  const label = score >= 0.6 ? 'long' : score <= -0.6 ? 'short' : 'neutral';
+  pushSignalHistory(label);
+  renderSignalHistory();
 
   el('mood').textContent = moodFromScore(score);
   el('thermoFill').style.width = `${((score + 3) / 6) * 100}%`;
