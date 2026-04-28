@@ -54,8 +54,12 @@
     </section>
 
     <section class="card">
-      <h3>미니 차트 (최근 120봉)</h3>
-      <canvas id="spark" width="820" height="220"></canvas>
+      <h3>미니 차트 (기간별)</h3>
+      <div class="multi-sparks">
+        <div><p class="muted">단기 (30봉)</p><canvas id="spark30" width="820" height="120"></canvas></div>
+        <div><p class="muted">중기 (120봉)</p><canvas id="spark120" width="820" height="140"></canvas></div>
+        <div><p class="muted">장기 (250봉)</p><canvas id="spark250" width="820" height="160"></canvas></div>
+      </div>
     </section>
 
     <section class="card">

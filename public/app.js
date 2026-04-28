@@ -16,7 +16,15 @@ function loadSettings() {
     const raw = localStorage.getItem('coinSignalSettings');
     if (!raw) return { ...DEFAULT_SETTINGS };
     const parsed = JSON.parse(raw);
-    return { ...DEFAULT_SETTINGS, ...parsed };
+    const merged = { ...DEFAULT_SETTINGS, ...parsed };
+
+    // legacy migration: old default(10/30s) -> new default(1s)
+    if (!merged.intervalCustomized && (merged.intervalSec === 10 || merged.intervalSec === 30)) {
+      merged.intervalSec = 1;
+      localStorage.setItem('coinSignalSettings', JSON.stringify(merged));
+    }
+
+    return merged;
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
@@ -103,9 +111,9 @@ function moodFromScore(score) {
   return '😐 관망 모드';
 }
 
-function drawSparkline(closes) {
-  const canvas = el('spark');
-  if (!canvas || !closes?.length) return;
+function drawSparklineOn(canvasId, closes) {
+  const canvas = el(canvasId);
+  if (!canvas || !closes?.length || closes.length < 2) return;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
@@ -134,6 +142,12 @@ function drawSparkline(closes) {
     if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   });
   ctx.stroke();
+}
+
+function drawAllSparks(closes) {
+  drawSparklineOn('spark30', closes.slice(-30));
+  drawSparklineOn('spark120', closes.slice(-120));
+  drawSparklineOn('spark250', closes.slice(-250));
 }
 
 function briefLine(symbol, rsi, macd, score) {
@@ -235,7 +249,7 @@ async function load() {
   el('thermoFill').style.width = `${((score + 3) / 6) * 100}%`;
   el('thermoText').textContent = `신호 강도 ${(Math.abs(score) / 3 * 100).toFixed(0)}%`;
   el('brief').textContent = briefLine(symbol, rsi, macd, score);
-  drawSparkline(closes.slice(-120));
+  drawAllSparks(closes);
 }
 
 function armLivePrice() {
@@ -297,6 +311,7 @@ el('saveSettingsBtn').addEventListener('click', async () => {
     symbols: symbols.length ? symbols : DEFAULT_SETTINGS.symbols,
     tf,
     intervalSec,
+    intervalCustomized: true,
     autoRefresh: el('autoRefresh').checked,
   };
   saveSettings(next);
