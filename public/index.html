@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Coin Signal Lab</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <h1>Coin Signal Lab</h1>
+      <p class="muted">투자 조언 아님 · 지표 기반 시나리오 대시보드</p>
+    </header>
+
+    <section class="controls card">
+      <label>코인
+        <select id="symbol">
+          <option value="BTCUSDT">BTCUSDT</option>
+          <option value="ETHUSDT">ETHUSDT</option>
+          <option value="SOLUSDT">SOLUSDT</option>
+        </select>
+      </label>
+      <button id="refreshBtn">새로고침</button>
+    </section>
+
+    <section class="grid">
+      <article class="card"><h3>현재가</h3><p id="price">-</p></article>
+      <article class="card"><h3>RSI(14)</h3><p id="rsi">-</p></article>
+      <article class="card"><h3>MACD</h3><p id="macd">-</p></article>
+      <article class="card"><h3>신호 점수</h3><p id="score">-</p></article>
+    </section>
+
+    <section class="card">
+      <h3>24시간 시나리오</h3>
+      <ul id="scenario"></ul>
+    </section>
+  </main>
+
+  <script src="./config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
