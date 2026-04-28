@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "qna-knowledge-tree-euo"
-  }
+  },
+  "targets": {
+    "qna-knowledge-tree-euo": {
+      "hosting": {
+        "coin": [
+          "coin-signal-lab-euo"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
