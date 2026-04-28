@@ -3,8 +3,7 @@ body{margin:0;background:#0b1020;color:#e9eefc;font-family:system-ui} .wrap{max-
 #thermoFill{height:100%;width:50%;background:linear-gradient(90deg,#ef5a7b,#9aa3c6,#4cd08a);transition:width .3s ease}
 #mood{font-size:22px;font-weight:700}
 .fun{border-color:#4a5ea0;box-shadow:0 0 0 1px rgba(116,144,255,.2) inset}
-.multi-sparks{display:grid;gap:10px}
-.multi-sparks canvas{display:block;width:100%;height:auto;min-height:90px;background:#0f1730;border:1px solid #34477c;border-radius:10px}
+#spark{display:block;width:100%;height:auto;min-height:140px;background:#0f1730;border:1px solid #34477c;border-radius:10px}
 .signal-bar{height:12px;background:#1a2344;border:1px solid #3a4d84;border-radius:999px;overflow:hidden;margin-top:8px}
 #signalFill{height:100%;width:50%;background:linear-gradient(90deg,#ef5a7b,#9aa3c6,#4cd08a)}
 .signal-history{display:flex;gap:6px;flex-wrap:wrap}
