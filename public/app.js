@@ -1,4 +1,7 @@
 const el = (id) => document.getElementById(id);
+let autoTimer = null;
+let tickTimer = null;
+let leftSec = 30;
 
 function ema(values, period) {
   const k = 2 / (period + 1);
@@ -77,6 +80,39 @@ function moodFromScore(score) {
   return '😐 관망 모드';
 }
 
+function drawSparkline(closes) {
+  const canvas = el('spark');
+  if (!canvas || !closes?.length) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const min = Math.min(...closes);
+  const max = Math.max(...closes);
+  const pad = 12;
+  const range = max - min || 1;
+
+  ctx.strokeStyle = '#2a3b6f';
+  ctx.lineWidth = 1;
+  for (let i = 1; i <= 3; i++) {
+    const y = pad + ((h - pad * 2) * i) / 4;
+    ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(w - pad, y); ctx.stroke();
+  }
+
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = closes[closes.length - 1] >= closes[0] ? '#4cd08a' : '#ef5a7b';
+  ctx.beginPath();
+  closes.forEach((v, i) => {
+    const x = pad + (i / (closes.length - 1)) * (w - pad * 2);
+    const y = h - pad - ((v - min) / range) * (h - pad * 2);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+
 function briefLine(symbol, rsi, macd, score) {
   const lines = [
     `${symbol} 현재 신호는 ${score > 0 ? '롱 우세' : score < 0 ? '숏 우세' : '중립'}.` ,
@@ -148,8 +184,30 @@ async function load() {
   el('thermoFill').style.width = `${((score + 3) / 6) * 100}%`;
   el('thermoText').textContent = `신호 강도 ${(Math.abs(score) / 3 * 100).toFixed(0)}%`;
   el('brief').textContent = briefLine(symbol, rsi, macd, score);
+  drawSparkline(closes.slice(-120));
 }
 
-el('refreshBtn').addEventListener('click', load);
-el('symbol').addEventListener('change', load);
-load().catch(console.error);
+function armAutoRefresh() {
+  if (autoTimer) clearInterval(autoTimer);
+  if (tickTimer) clearInterval(tickTimer);
+  leftSec = 30;
+  el('countdown').textContent = `${leftSec}s`;
+
+  if (!el('autoRefresh').checked) return;
+
+  tickTimer = setInterval(() => {
+    leftSec -= 1;
+    if (leftSec <= 0) leftSec = 30;
+    el('countdown').textContent = `${leftSec}s`;
+  }, 1000);
+
+  autoTimer = setInterval(async () => {
+    leftSec = 30;
+    await load();
+  }, 30000);
+}
+
+el('refreshBtn').addEventListener('click', async () => { await load(); armAutoRefresh(); });
+el('symbol').addEventListener('change', async () => { await load(); armAutoRefresh(); });
+el('autoRefresh').addEventListener('change', armAutoRefresh);
+load().then(armAutoRefresh).catch(console.error);

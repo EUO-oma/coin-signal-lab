@@ -3,4 +3,5 @@ body{margin:0;background:#0b1020;color:#e9eefc;font-family:system-ui} .wrap{max-
 #thermoFill{height:100%;width:50%;background:linear-gradient(90deg,#ef5a7b,#9aa3c6,#4cd08a);transition:width .3s ease}
 #mood{font-size:22px;font-weight:700}
 .fun{border-color:#4a5ea0;box-shadow:0 0 0 1px rgba(116,144,255,.2) inset}
+#spark{width:100%;height:auto;background:#0f1730;border:1px solid #34477c;border-radius:10px}
 @media(max-width:700px){.grid{grid-template-columns:1fr}}

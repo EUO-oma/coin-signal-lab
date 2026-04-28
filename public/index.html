@@ -23,6 +23,8 @@
         </select>
       </label>
       <button id="refreshBtn">새로고침</button>
+      <label class="muted"><input type="checkbox" id="autoRefresh" checked /> 자동 새로고침(30초)</label>
+      <span id="countdown" class="muted">30s</span>
     </section>
 
     <section class="grid">
@@ -30,6 +32,11 @@
       <article class="card"><h3>RSI(14)</h3><p id="rsi">-</p></article>
       <article class="card"><h3>MACD</h3><p id="macd">-</p></article>
       <article class="card"><h3>신호 점수</h3><p id="score">-</p></article>
+    </section>
+
+    <section class="card">
+      <h3>미니 차트 (최근 120봉)</h3>
+      <canvas id="spark" width="820" height="220"></canvas>
     </section>
 
     <section class="card">
