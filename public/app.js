@@ -165,9 +165,12 @@ function drawSparklineOn(canvasId, closes) {
 }
 
 function drawAllSparks(closes) {
+  // new multi charts
   drawSparklineOn('spark30', closes.slice(-30));
   drawSparklineOn('spark120', closes.slice(-120));
   drawSparklineOn('spark250', closes.slice(-250));
+  // backward-compatible single canvas (cached old HTML)
+  drawSparklineOn('spark', closes.slice(-120));
 }
 
 async function fetchCoinNews(symbol) {
