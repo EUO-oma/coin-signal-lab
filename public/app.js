@@ -9,6 +9,7 @@ const DEFAULT_SETTINGS = {
   tf: '1h',
   intervalSec: 1,
   autoRefresh: true,
+  chartPeriod: 120,
 };
 
 function loadSettings() {
@@ -185,7 +186,9 @@ function drawSparklineOn(canvasId, closes) {
 }
 
 function drawAllSparks(closes) {
-  drawSparklineOn('spark', closes.slice(-120));
+  const settings = loadSettings();
+  const n = Number(settings.chartPeriod || 120);
+  drawSparklineOn('spark', closes.slice(-n));
 }
 
 async function fetchCoinNews(symbol) {
@@ -257,6 +260,7 @@ function applySettingsToUi(settings) {
   el('settingsSymbols').value = settings.symbols.join(',');
   el('settingsTf').value = settings.tf;
   el('settingsInterval').value = settings.intervalSec;
+  if (el('chartPeriod')) el('chartPeriod').value = String(settings.chartPeriod || 120);
 }
 
 async function load() {
@@ -393,6 +397,15 @@ el('openSettingsBtn').addEventListener('click', () => {
 el('closeSettingsBtn').addEventListener('click', () => {
   el('settingsPanel').hidden = true;
 });
+if (el('chartPeriod')) {
+  el('chartPeriod').addEventListener('change', async () => {
+    const s = loadSettings();
+    s.chartPeriod = Math.max(20, Math.min(500, Number(el('chartPeriod').value || 120)));
+    saveSettings(s);
+    await load();
+  });
+}
+
 el('saveSettingsBtn').addEventListener('click', async () => {
   const symbols = String(el('settingsSymbols').value || '')
     .split(',').map(v => v.trim().toUpperCase()).filter(Boolean);
@@ -403,6 +416,7 @@ el('saveSettingsBtn').addEventListener('click', async () => {
     symbols: symbols.length ? symbols : DEFAULT_SETTINGS.symbols,
     tf,
     intervalSec,
+    chartPeriod: Number(el('chartPeriod')?.value || loadSettings().chartPeriod || 120),
     intervalCustomized: true,
     autoRefresh: el('autoRefresh').checked,
   };

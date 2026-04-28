@@ -61,7 +61,17 @@
     </section>
 
     <section class="card">
-      <h3>미니 차트 (중기 120봉)</h3>
+      <h3>미니 차트</h3>
+      <div class="controls">
+        <label>표시 기간
+          <select id="chartPeriod">
+            <option value="30">30봉</option>
+            <option value="60">60봉</option>
+            <option value="120" selected>120봉</option>
+            <option value="250">250봉</option>
+          </select>
+        </label>
+      </div>
       <canvas id="spark" width="820" height="220"></canvas>
     </section>
 
