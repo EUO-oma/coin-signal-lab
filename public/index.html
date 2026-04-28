@@ -16,15 +16,34 @@
 
     <section class="controls card">
       <label>코인
-        <select id="symbol">
-          <option value="BTCUSDT">BTCUSDT</option>
-          <option value="ETHUSDT">ETHUSDT</option>
-          <option value="SOLUSDT">SOLUSDT</option>
-        </select>
+        <select id="symbol"></select>
       </label>
       <button id="refreshBtn">새로고침</button>
-      <label class="muted"><input type="checkbox" id="autoRefresh" checked /> 자동 새로고침(30초)</label>
+      <label class="muted"><input type="checkbox" id="autoRefresh" checked /> 자동 새로고침</label>
       <span id="countdown" class="muted">30s</span>
+      <button id="openSettingsBtn">설정</button>
+    </section>
+
+    <section class="card" id="settingsPanel" hidden>
+      <h3>설정</h3>
+      <label>코인 목록(콤마 구분)
+        <input id="settingsSymbols" placeholder="BTCUSDT,ETHUSDT,SOLUSDT" />
+      </label>
+      <label>기본 타임프레임
+        <select id="settingsTf">
+          <option value="15m">15m</option>
+          <option value="1h">1h</option>
+          <option value="4h">4h</option>
+          <option value="1d">1d</option>
+        </select>
+      </label>
+      <label>자동 새로고침 간격(초)
+        <input id="settingsInterval" type="number" min="10" max="300" step="5" value="30" />
+      </label>
+      <div class="controls">
+        <button id="saveSettingsBtn">저장</button>
+        <button id="closeSettingsBtn">닫기</button>
+      </div>
     </section>
 
     <section class="grid">

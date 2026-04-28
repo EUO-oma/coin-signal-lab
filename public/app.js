@@ -3,6 +3,28 @@ let autoTimer = null;
 let tickTimer = null;
 let leftSec = 30;
 
+const DEFAULT_SETTINGS = {
+  symbols: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'],
+  tf: '1h',
+  intervalSec: 30,
+  autoRefresh: true,
+};
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem('coinSignalSettings');
+    if (!raw) return { ...DEFAULT_SETTINGS };
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_SETTINGS, ...parsed };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
+function saveSettings(s) {
+  localStorage.setItem('coinSignalSettings', JSON.stringify(s));
+}
+
 function ema(values, period) {
   const k = 2 / (period + 1);
   let prev = values[0];
@@ -130,6 +152,26 @@ async function fetchBinanceFallback(symbol, tf) {
   return { closes, current: Number(ticker.price), source: 'Binance fallback' };
 }
 
+function renderSymbolOptions(symbols, selected) {
+  const sel = el('symbol');
+  sel.innerHTML = '';
+  symbols.forEach((sym) => {
+    const opt = document.createElement('option');
+    opt.value = sym;
+    opt.textContent = sym;
+    if (sym === selected) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function applySettingsToUi(settings) {
+  renderSymbolOptions(settings.symbols, settings.symbols[0]);
+  el('autoRefresh').checked = !!settings.autoRefresh;
+  el('settingsSymbols').value = settings.symbols.join(',');
+  el('settingsTf').value = settings.tf;
+  el('settingsInterval').value = settings.intervalSec;
+}
+
 async function load() {
   const cfg = window.APP_CONFIG || {};
   if (!cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY || cfg.SUPABASE_URL.includes('__')) {
@@ -142,7 +184,8 @@ async function load() {
   const sb = createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
 
   const symbol = el('symbol').value;
-  const tf = cfg.TF || '1h';
+  const saved = loadSettings();
+  const tf = saved.tf || cfg.TF || '1h';
 
   el('price').textContent = '로딩...';
 
@@ -188,26 +231,62 @@ async function load() {
 }
 
 function armAutoRefresh() {
+  const settings = loadSettings();
+  const intervalSec = Number(settings.intervalSec || 30);
+
   if (autoTimer) clearInterval(autoTimer);
   if (tickTimer) clearInterval(tickTimer);
-  leftSec = 30;
+  leftSec = intervalSec;
   el('countdown').textContent = `${leftSec}s`;
 
   if (!el('autoRefresh').checked) return;
 
   tickTimer = setInterval(() => {
     leftSec -= 1;
-    if (leftSec <= 0) leftSec = 30;
+    if (leftSec <= 0) leftSec = intervalSec;
     el('countdown').textContent = `${leftSec}s`;
   }, 1000);
 
   autoTimer = setInterval(async () => {
-    leftSec = 30;
+    leftSec = intervalSec;
     await load();
-  }, 30000);
+  }, intervalSec * 1000);
 }
 
 el('refreshBtn').addEventListener('click', async () => { await load(); armAutoRefresh(); });
 el('symbol').addEventListener('change', async () => { await load(); armAutoRefresh(); });
-el('autoRefresh').addEventListener('change', armAutoRefresh);
+el('autoRefresh').addEventListener('change', () => {
+  const s = loadSettings();
+  s.autoRefresh = el('autoRefresh').checked;
+  saveSettings(s);
+  armAutoRefresh();
+});
+
+el('openSettingsBtn').addEventListener('click', () => {
+  el('settingsPanel').hidden = false;
+});
+el('closeSettingsBtn').addEventListener('click', () => {
+  el('settingsPanel').hidden = true;
+});
+el('saveSettingsBtn').addEventListener('click', async () => {
+  const symbols = String(el('settingsSymbols').value || '')
+    .split(',').map(v => v.trim().toUpperCase()).filter(Boolean);
+  const tf = el('settingsTf').value;
+  const intervalSec = Math.max(10, Math.min(300, Number(el('settingsInterval').value || 30)));
+  const next = {
+    ...loadSettings(),
+    symbols: symbols.length ? symbols : DEFAULT_SETTINGS.symbols,
+    tf,
+    intervalSec,
+    autoRefresh: el('autoRefresh').checked,
+  };
+  saveSettings(next);
+  renderSymbolOptions(next.symbols, next.symbols[0]);
+  el('settingsPanel').hidden = true;
+  await load();
+  armAutoRefresh();
+});
+
+const initial = loadSettings();
+applySettingsToUi(initial);
 load().then(armAutoRefresh).catch(console.error);
