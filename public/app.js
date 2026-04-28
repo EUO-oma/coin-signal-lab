@@ -194,17 +194,35 @@ function drawAllSparks(closes) {
 async function fetchCoinNews(symbol) {
   const coin = symbol.replace('USDT', '');
   const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(coin + ' crypto')}&hl=ko&gl=KR&ceid=KR:ko`;
-  const proxied = `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`;
 
-  const res = await fetch(proxied);
-  if (!res.ok) throw new Error(`news ${res.status}`);
-  const xmlText = await res.text();
-  const doc = new DOMParser().parseFromString(xmlText, 'text/xml');
-  const items = [...doc.querySelectorAll('item')].slice(0, 6);
+  // 1) primary: allorigins raw
+  try {
+    const proxied = `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`;
+    const res = await fetch(proxied);
+    if (res.ok) {
+      const xmlText = await res.text();
+      const doc = new DOMParser().parseFromString(xmlText, 'text/xml');
+      const items = [...doc.querySelectorAll('item')].slice(0, 6);
+      if (items.length) {
+        return items.map((it) => ({
+          title: it.querySelector('title')?.textContent || '',
+          link: it.querySelector('link')?.textContent || '#',
+          pubDate: it.querySelector('pubDate')?.textContent || '',
+        }));
+      }
+    }
+  } catch {}
+
+  // 2) fallback: rss2json
+  const r2j = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+  const r = await fetch(r2j);
+  if (!r.ok) throw new Error(`news ${r.status}`);
+  const j = await r.json();
+  const items = (j.items || []).slice(0, 6);
   return items.map((it) => ({
-    title: it.querySelector('title')?.textContent || '',
-    link: it.querySelector('link')?.textContent || '#',
-    pubDate: it.querySelector('pubDate')?.textContent || '',
+    title: it.title || '',
+    link: it.link || '#',
+    pubDate: it.pubDate || '',
   }));
 }
 
