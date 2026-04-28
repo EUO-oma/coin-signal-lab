@@ -69,6 +69,23 @@ function computeScore(rsi, macd) {
   return Math.max(-3, Math.min(3, score));
 }
 
+function moodFromScore(score) {
+  if (score >= 1.8) return '🚀 강한 상승 모드';
+  if (score >= 0.6) return '📈 완만한 상승 모드';
+  if (score <= -1.8) return '🧊 강한 하락 모드';
+  if (score <= -0.6) return '📉 약한 하락 모드';
+  return '😐 관망 모드';
+}
+
+function briefLine(symbol, rsi, macd, score) {
+  const lines = [
+    `${symbol} 현재 신호는 ${score > 0 ? '롱 우세' : score < 0 ? '숏 우세' : '중립'}.` ,
+    `RSI ${rsi?.toFixed?.(1) ?? '-'} / MACD 히스토그램 ${macd ? (macd.hist > 0 ? '양수' : '음수') : '-'}.`,
+    score > 0 ? '모멘텀은 살아있지만, 과열 구간 진입 여부를 체크해.' : score < 0 ? '반등 시도보다 추세 확인이 먼저야.' : '방향성 부재. 기다림도 전략.'
+  ];
+  return lines.join(' ');
+}
+
 async function load() {
   const cfg = window.APP_CONFIG || {};
   if (!cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY || cfg.SUPABASE_URL.includes('__')) {
@@ -117,6 +134,11 @@ async function load() {
   el('macd').textContent = macd ? `${macd.macd.toFixed(4)} / signal ${macd.signal.toFixed(4)}` : '-';
   el('score').textContent = `${score.toFixed(2)} (${score > 0 ? '상승 우세' : score < 0 ? '하락 우세' : '중립'})`;
   el('scenario').innerHTML = `<li>상승: <b>${sc.up}%</b></li><li>횡보: <b>${sc.flat}%</b></li><li>하락: <b>${sc.down}%</b></li>`;
+
+  el('mood').textContent = moodFromScore(score);
+  el('thermoFill').style.width = `${((score + 3) / 6) * 100}%`;
+  el('thermoText').textContent = `신호 강도 ${(Math.abs(score) / 3 * 100).toFixed(0)}%`;
+  el('brief').textContent = briefLine(symbol, rsi, macd, score);
 }
 
 el('refreshBtn').addEventListener('click', load);
