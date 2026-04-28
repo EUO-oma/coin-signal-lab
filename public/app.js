@@ -1,12 +1,13 @@
 const el = (id) => document.getElementById(id);
 let autoTimer = null;
 let tickTimer = null;
+let priceTimer = null;
 let leftSec = 30;
 
 const DEFAULT_SETTINGS = {
   symbols: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'],
   tf: '1h',
-  intervalSec: 30,
+  intervalSec: 1,
   autoRefresh: true,
 };
 
@@ -164,6 +165,13 @@ function renderSymbolOptions(symbols, selected) {
   });
 }
 
+async function fetchLiveTickerPrice(symbol) {
+  const r = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+  if (!r.ok) throw new Error(`ticker ${r.status}`);
+  const j = await r.json();
+  return Number(j.price);
+}
+
 function applySettingsToUi(settings) {
   renderSymbolOptions(settings.symbols, settings.symbols[0]);
   el('autoRefresh').checked = !!settings.autoRefresh;
@@ -230,6 +238,17 @@ async function load() {
   drawSparkline(closes.slice(-120));
 }
 
+function armLivePrice() {
+  if (priceTimer) clearInterval(priceTimer);
+  priceTimer = setInterval(async () => {
+    try {
+      const symbol = el('symbol').value;
+      const p = await fetchLiveTickerPrice(symbol);
+      el('price').textContent = Number(p).toLocaleString();
+    } catch {}
+  }, 1000);
+}
+
 function armAutoRefresh() {
   const settings = loadSettings();
   const intervalSec = Number(settings.intervalSec || 30);
@@ -253,8 +272,8 @@ function armAutoRefresh() {
   }, intervalSec * 1000);
 }
 
-el('refreshBtn').addEventListener('click', async () => { await load(); armAutoRefresh(); });
-el('symbol').addEventListener('change', async () => { await load(); armAutoRefresh(); });
+el('refreshBtn').addEventListener('click', async () => { await load(); armAutoRefresh(); armLivePrice(); });
+el('symbol').addEventListener('change', async () => { await load(); armAutoRefresh(); armLivePrice(); });
 el('autoRefresh').addEventListener('change', () => {
   const s = loadSettings();
   s.autoRefresh = el('autoRefresh').checked;
@@ -272,7 +291,7 @@ el('saveSettingsBtn').addEventListener('click', async () => {
   const symbols = String(el('settingsSymbols').value || '')
     .split(',').map(v => v.trim().toUpperCase()).filter(Boolean);
   const tf = el('settingsTf').value;
-  const intervalSec = Math.max(10, Math.min(300, Number(el('settingsInterval').value || 30)));
+  const intervalSec = Math.max(1, Math.min(300, Number(el('settingsInterval').value || 1)));
   const next = {
     ...loadSettings(),
     symbols: symbols.length ? symbols : DEFAULT_SETTINGS.symbols,
@@ -285,8 +304,9 @@ el('saveSettingsBtn').addEventListener('click', async () => {
   el('settingsPanel').hidden = true;
   await load();
   armAutoRefresh();
+  armLivePrice();
 });
 
 const initial = loadSettings();
 applySettingsToUi(initial);
-load().then(armAutoRefresh).catch(console.error);
+load().then(() => { armAutoRefresh(); armLivePrice(); }).catch(console.error);
