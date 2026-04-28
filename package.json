@@ -1,0 +1,8 @@
+{
+  "name": "coin-signal-lab",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "ingest": "node scripts/ingest_binance_to_supabase.mjs"
+  }
+}
