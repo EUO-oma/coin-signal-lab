@@ -170,6 +170,33 @@ function drawAllSparks(closes) {
   drawSparklineOn('spark250', closes.slice(-250));
 }
 
+async function fetchCoinNews(symbol) {
+  const coin = symbol.replace('USDT', '');
+  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(coin + ' crypto')}&hl=ko&gl=KR&ceid=KR:ko`;
+  const proxied = `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`;
+
+  const res = await fetch(proxied);
+  if (!res.ok) throw new Error(`news ${res.status}`);
+  const xmlText = await res.text();
+  const doc = new DOMParser().parseFromString(xmlText, 'text/xml');
+  const items = [...doc.querySelectorAll('item')].slice(0, 6);
+  return items.map((it) => ({
+    title: it.querySelector('title')?.textContent || '',
+    link: it.querySelector('link')?.textContent || '#',
+    pubDate: it.querySelector('pubDate')?.textContent || '',
+  }));
+}
+
+function renderNews(items) {
+  const list = el('newsList');
+  if (!list) return;
+  if (!items?.length) {
+    list.innerHTML = '<li class="muted">뉴스 없음</li>';
+    return;
+  }
+  list.innerHTML = items.map((n) => `<li><a href="${n.link}" target="_blank" rel="noopener noreferrer">${n.title}</a><br><span class="muted">${n.pubDate}</span></li>`).join('');
+}
+
 function briefLine(symbol, rsi, macd, score) {
   const lines = [
     `${symbol} 현재 신호는 ${score > 0 ? '롱 우세' : score < 0 ? '숏 우세' : '중립'}.` ,
@@ -279,6 +306,13 @@ async function load() {
   el('thermoText').textContent = `신호 강도 ${(Math.abs(score) / 3 * 100).toFixed(0)}%`;
   el('brief').textContent = briefLine(symbol, rsi, macd, score);
   drawAllSparks(closes);
+
+  try {
+    const news = await fetchCoinNews(symbol);
+    renderNews(news);
+  } catch {
+    renderNews([]);
+  }
 }
 
 function armLivePrice() {
